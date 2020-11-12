@@ -1,6 +1,8 @@
 from .base_knn import BaseKNN
 from scipy.sparse import csr_matrix
 from heapq import nlargest
+from tqdm import tqdm
+import gc
 
 
 class ItemKNN(BaseKNN):
@@ -22,7 +24,7 @@ class ItemKNN(BaseKNN):
         # create storage data structures
         item_rated_users = {}
         interactions, uids, iids = [], [], []
-        for record in self.interaction_dataset.values():
+        for record in tqdm(self.interaction_dataset.values()):
             u, i, r = record['uid'], record['iid'], record['interaction']
             interactions.append(r)
             uids.append(u)
@@ -36,7 +38,9 @@ class ItemKNN(BaseKNN):
         # compute similarity matrix
         similarities_matrix = self.sim_metric_fn(csr_matrix((interactions, (iids, uids)))).tocoo()
 
-        for i1, i2, s in zip(similarities_matrix.row, similarities_matrix.col, similarities_matrix.data):
+        gc.collect()
+
+        for i1, i2, s in tqdm(zip(similarities_matrix.row, similarities_matrix.col, similarities_matrix.data), total=len(similarities_matrix.row)):
             if i1 <= i2:  # symmetric matrix - only need 1/2 of the values
                 continue
 
@@ -51,7 +55,8 @@ class ItemKNN(BaseKNN):
                 self._similarities[i1][i2] *= len(co_ratings) / (len(co_ratings) + self.shrinkage + 1e-6)
 
     def _compute_neighbours(self):
-        for iid in self.interaction_dataset.unique('iid').values('iid', to_list=True):
+        uiids = self.interaction_dataset.unique('iid')
+        for iid in tqdm(uiids.values('iid', to_list=True), total=len(uiids)):
             self._neighbours[iid] = nlargest(self.k, filter(
                 lambda x: x[0] is not None and x[0] > 0,
                 [(self._get_sim(iid, iid2), iid2) for iid2 in range(self.n_items) if iid2 != iid]

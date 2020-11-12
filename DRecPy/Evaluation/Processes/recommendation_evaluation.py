@@ -119,6 +119,8 @@ def recommendation_evaluation(model, ds_test=None, n_test_users=None, k=10, n_po
     results = {m + f'@{k}': round(metric_sums[(m, k)][0] / metric_sums[(m, k)][1], 4)
         if metric_sums[(m, k)][1] > 0 else 0 for m, k in metric_sums}
 
+    print('METRICS >>>>>>>', results)
+
     if kwds.get('verbose', True) and len(k) > 1:
         fig, axes = plt.subplots(1)
         fig.suptitle(f'Evaluation Metrics for {model.__class__.__name__}')

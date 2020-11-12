@@ -52,7 +52,15 @@ DATASETS = {
                             delimiter=';',
                             encoding='latin1',
                             has_header=True,
-                            unzip=False)
+                            unzip=False),
+    'lastfm': DatasetReadConfig(url='http://mtg.upf.edu/static/datasets/last.fm/lastfm-dataset-1K.tar.gz',
+                            train_file='lastfm_train_edited.dat',
+                            test_file='lastfm_test_edited.dat',
+                            full_file='',
+                            columns=['user', 'item', 'interaction', 'timestamp'],
+                            delimiter='::',
+                            has_header=False,
+                            unzip=True)
 }
 
 

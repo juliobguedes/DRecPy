@@ -1,6 +1,8 @@
 from .base_knn import BaseKNN
 from scipy.sparse import csr_matrix
 from heapq import nlargest
+from tqdm import tqdm
+import gc
 
 
 class UserKNN(BaseKNN):
@@ -36,7 +38,9 @@ class UserKNN(BaseKNN):
         # compute similarity matrix
         similarities_matrix = self.sim_metric_fn(csr_matrix((interactions, (uids, iids)))).tocoo()
 
-        for u1, u2, s in zip(similarities_matrix.row, similarities_matrix.col, similarities_matrix.data):
+        gc.collect()
+
+        for u1, u2, s in tqdm(zip(similarities_matrix.row, similarities_matrix.col, similarities_matrix.data), total=len(similarities_matrix.row)):
             if u1 <= u2:  # symmetric matrix - only need 1/2 of the values
                 continue
 
@@ -51,7 +55,8 @@ class UserKNN(BaseKNN):
                 self._similarities[u1][u2] *= len(co_ratings) / (len(co_ratings) + self.shrinkage + 1e-6)
 
     def _compute_neighbours(self):
-        for uid in self.interaction_dataset.unique('uid').values('uid', to_list=True):
+        uuids = self.interaction_dataset.unique('uid')
+        for uid in tqdm(uuids.values('uid', to_list=True), total=len(uuids)):
             self._neighbours[uid] = nlargest(self.k, filter(
                 lambda x: x[0] is not None and x[0] > 0,
                 [(self._get_sim(uid, uid2), uid2) for uid2 in range(self.n_users) if uid2 != uid]
